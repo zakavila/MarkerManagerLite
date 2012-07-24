@@ -1,0 +1,13 @@
+Things done so far 
+
+-- Adding markers to the localStorage
+-- Clearing localStorage
+-- Appropriate animation on mouseover on list
+
+
+Things need to be done/improved
+
+-- Better way to download the JSON file
+-- Better animation
+-- Geocoding for better initial view
+** EDIT EACH MARKER
