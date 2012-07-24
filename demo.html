@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+    <title> MarkerManager</title>
+
+
+<style type="text/css">
+
+    html { height: 100% }
+    body { height: 100%; margin: 0; padding: 0 }    
+    #map_canvas {
+        height: 75%;
+        width: 75%;
+    }
+
+    .map-container {
+
+
+    }
+
+    .marker-container {
+        height: 75%;
+        float: right;
+        margin-right: 15%;
+        overflow: scroll;
+    }
+
+    ul {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    li {
+        background-image: url('red_MarkerO.png');
+        background-size: 20%;
+        background-repeat: no-repeat;
+        background-position: 0 100%;
+
+        padding-top: 5px;
+        padding-bottom: 5px;
+        padding-left: 1em; 
+    }
+</style>
+
+<script type="text/javascript" src="http://code.jquery.com/jquery-1.7.2.min.js"></script>
+<script type="text/javascript" src="http://maps.googleapis.com/maps/api/js?sensor=false&libraries=drawing"></script>
+<script type="text/javascript" src="http://cloud.github.com/downloads/emberjs/ember.js/ember-0.9.8.1.min.js"></script>
+<script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.8/jquery-ui.min.js"></script>
+
+</head>
+
+<script type="text/javascript">
+  
+
+    /* 
+    (function($) {
+
+        var Marker = function(marker) {
+            this.name = "";
+            this.lat = marker.getPosition().lat(); 
+            this.lng= marker.getPosition().lng();
+        };
+
+
+        
+        var methods = {
+
+
+            initMap : function() {
+
+                // initial map setting
+                var myOptions = {
+                    center : new google.maps.LatLng(-34.397, 150.644),
+                    zoom : 8,
+                    mapTypeId : google.maps.MapTypeId.ROADMAP
+                };
+
+                var map = new google.maps.Map($('#map_canvas').get(0), myOptions);
+                var drawingManager = new google.maps.drawing.DrawingManager({
+
+                });
+                drawingManager.setMap(map);
+
+
+                // Setting for marker events
+
+
+                var $markerList = $('.marker-container').find('ul');
+                google.maps.event.addListener(drawingManager, 'markercomplete', function(marker) {
+                    var markerObj = new Marker(marker);
+
+                    var testhtml = "<li>hsdfasfasdfaha</li>";
+                    var $lit = $(testhtml);
+
+                    $markerList.append($lit)
+                });
+
+
+            }
+        };
+
+        $.fn.initApp = function(method) {
+
+            if ( methods[method] ) {
+                return methods[ method ].apply( this, Array.prototype.slice.call( arguments, 1 ));
+            } else if ( typeof method === 'object' || ! method ) {
+                return methods.init.apply( this, arguments );
+            } else {
+                $.error( 'Method ' +  method + ' does not exist' );
+            }    
+
+        };
+
+    })(jQuery);
+
+*/
+
+
+    $(document).ready(function() {
+
+
+     
+      // initial map setting
+
+        var map = function(){
+
+            var myOptions = {
+                center : new google.maps.LatLng(-34.397, 150.644),
+                zoom : 8,
+                mapTypeId : google.maps.MapTypeId.ROADMAP
+            };
+            var map_container = $('#map_canvas').get(0);
+
+            return new google.maps.Map(map_container, myOptions);
+        }();
+
+
+        var drawingManager = function(m) {
+            return new google.maps.drawing.DrawingManager({
+                            drawingMode : google.maps.drawing.OverlayType.MARKER,
+                            drawingControlOptions : {
+                                drawingModes : [google.maps.drawing.OverlayType.MARKER],
+                                position : google.maps.ControlPosition.TOP_CENTER
+                            }
+                        }); 
+        }();
+
+        drawingManager.setMap(map);
+
+        var Marker = function() {
+            this.label = ""; 
+            this.lat = "";
+            this.lng = "";
+        };
+
+        Marker.prototype.makeFromGMarker = function(param) {
+            this.label = "";
+            this.lat = param.getPosition().lat(); 
+            this.lng= param.getPosition().lng();
+        };
+
+        Marker.prototype.updateName = function(n) {
+            this.label = n;
+        };
+
+
+
+        var $marker_container = $('#marker-list');
+
+        (function(){
+
+            var marker_list = JSON.parse(localStorage['markers'] || '[]');
+
+            $.each(marker_list, function(){
+                var markerObj = this;
+
+
+                var tempMarker = new google.maps.Marker({
+                    position : new google.maps.LatLng(markerObj.lat, markerObj.lng)
+                });
+                var $li = $("<li><a href='#'>" + markerObj.label + "</a></li>").data('marker', tempMarker);
+
+                tempMarker.setMap(map);
+                // innerHTML is faster than appending millions of jquery objects
+                $marker_container.append($li);
+            });
+        }());
+
+
+        $marker_container.delegate('li', 'mouseover', function(){
+            $(this).data('marker').setAnimation(google.maps.Animation.BOUNCE);
+        });
+
+
+        $marker_container.delegate('li', 'mouseout', function(){
+            $(this).data('marker').setAnimation(null);
+        });
+
+        // Setting for marker events
+
+        // get a copy
+        var marker_storage = JSON.parse(localStorage['markers'] || '[]');
+        ///console.log(marker_storage);
+        var num_markers = marker_storage.length;
+        //console.log(num_markers);
+
+        google.maps.event.addListener(drawingManager, 'markercomplete', function(marker) {
+
+            var markerObj = new Marker();
+            markerObj.makeFromGMarker(marker);
+            var name_input = prompt("Marker Label?", "marker" + num_markers);
+            markerObj.updateName(name_input);
+
+            var $li = $("<li><a href='#'>" + markerObj.label + "</a></li>").data('marker', marker);
+            marker_storage.push(markerObj);
+            num_markers++;
+
+            $marker_container.append($li);
+        });  
+
+
+
+        
+
+        // updates the list when the tab closes
+        $(window).on('beforeunload', function(){
+            localStorage.setItem('markers', JSON.stringify(marker_storage));
+        });
+
+        // clear the list with the clear button
+        $('#clear-list').click(function(){
+            clearAll();
+        });
+
+        //save button
+        $('#save-button').click(function(){
+            localStorage.setItem('markers', JSON.stringify(marker_storage));
+            console.log(localStorage);
+            console.log(marker_storage.length);
+            console.log(localStorage.getItem('ha'));
+            console.log(localStorage.getItem('markers'));
+        });
+
+        function clearAll() {
+
+            var $marker_list = $('#marker-list');
+            var $markers = $marker_list.children();
+            $.each($markers, function(){
+                //console.log($(this).data('marker'));
+                $(this).data('marker').setMap(null);
+            });
+            $marker_list.html('');
+            //localStorage.clear();
+            localStorage.removeItem('markers');
+            //localStorage.removeItem('markers');
+            num_markers = 0;
+            marker_storage = [];
+        };
+
+        $('#download-button').click(function(){
+            window.location.href = 'markers.json';
+        });
+    });
+</script>
+
+
+<body>
+<div class="map-container">
+</div>
+
+<div class="marker-container">
+    <ul id="marker-list"></ul>
+</div>
+
+<div id="map_canvas"></div>
+
+<input type="button" id="save-button" value="Save"/>
+<input type="button" id="clear-list" value="Clear Markers"/>
+<input type="button" id="download-button" value="Download List"/>
+
+</body>
+</html>
